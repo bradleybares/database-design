@@ -1,4 +1,3 @@
-# Procedures
 use tm;
 
 -- PLAYER PROCEDURES
@@ -105,10 +104,10 @@ DELIMITER //
 create procedure view_all_division_matches(IN D_ID INT)
 BEGIN
 	SELECT *
-    FROM (select * from gamematch where division_id_FK = D_ID) as gm
-		left join individualmatch as im
+    FROM (select * from match_data where division_id_FK = D_ID) as gm
+		left join individual_match as im
 			on gm.match_id = im.match_id_FK
-		left join squadmatch as sm
+		left join squad_match as sm
 			on gm.match_id = sm.match_id_FK;
 END //
 DELIMITER ;
@@ -121,10 +120,10 @@ DELIMITER //
 create procedure view_specific_match(IN M_ID INT)
 BEGIN
 	SELECT *
-    FROM (select * from gamematch where match_id = M_ID) as gm
-		left join individualmatch as im
+    FROM (select * from match_data where match_id = M_ID) as gm
+		left join individual_match as im
 			on gm.match_id = im.match_id_FK
-		left join squadmatch as sm
+		left join squad_match as sm
 			on gm.match_id = sm.match_id_FK;
 END //
 DELIMITER ;
@@ -138,7 +137,7 @@ drop procedure if exists view_all_match_games;
 DELIMITER //
 create procedure view_all_match_games(IN M_ID INT)
 BEGIN
-	SELECT * FROM game where match_id_FK = M_ID;
+	SELECT * FROM game_data where match_id_FK = M_ID;
 END //
 DELIMITER ;
 
@@ -149,7 +148,7 @@ drop procedure if exists view_specific_game;
 DELIMITER //
 create procedure view_specific_game(IN G_ID INT)
 BEGIN
-	SELECT * FROM game where game_id = G_ID;
+	SELECT * FROM game_data where game_id = G_ID;
 END //
 DELIMITER ;
 
