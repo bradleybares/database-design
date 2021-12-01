@@ -57,6 +57,16 @@ class App(tk.Tk):
     def set_t_id(self, t_id):
         self.t_id = t_id
 
+    def set_d_id(self, d_id):
+        self.d_id = d_id
+
+    def set_p_id(self, p_id):
+        self.p_id = p_id
+
+    def set_s_id(self, s_id):
+        self.s_id = s_id
+
+
 class LoginPage(ttk.Frame):
     """
     Represents the login page of the application.
@@ -67,8 +77,9 @@ class LoginPage(ttk.Frame):
     def __init__(self, parent, controller):
         ttk.Frame.__init__(self, parent)
         self.controller = controller
-        label = ttk.Label(self, text="Login Here", font=controller.title_font)
-        label.pack(side="top", fill="x", pady=10)
+
+        # Form Grouping
+        form = ttk.Frame(self)
 
         # username label and text entry box
         username_label = ttk.Label(form, text="Username")
@@ -434,6 +445,63 @@ class Players(ttk.Frame):
                             command=lambda: controller.next_frame(Homepage))
         button.pack()
 
+        cur = controller.cnx.cursor()
+        cur.callproc("view_all_players")
+        rows = cur.fetchall()
+        players = {}
+        for row in rows:
+            players[row["id"]] = row
+        cur.close()
+
+        for p_id in players:
+            name = players[p_id]["name"]
+            date_of_birth = players[p_id]["dob"]
+            phone_number = players[p_id]["phone_number"]
+            button_text = f"{name}\n" \
+                          f"{date_of_birth}\n" \
+                          f"{phone_number}"
+            button = ttk.Button(self, text=button_text,
+                                command=lambda p=p_id: self.select_player(p_id))
+            button.pack()
+
+    def select_player(self, p_id):
+
+        self.controller.set_p_id(p_id)
+        self.controller.next_frame(Player)
+
+
+class Player(ttk.Frame):
+    """
+    Represents a specific player view.
+
+    Presents player data and offers player deletion/editing.
+    """
+
+    def __init__(self, parent, controller):
+        ttk.Frame.__init__(self, parent)
+        self.controller = controller
+
+        cur = self.controller.cnx.cursor()
+        cur.callproc("view_specific_player", (self.controller.p_id,))
+        row = cur.fetchall()
+        cur.close()
+
+        used_row = row[0]
+        # Iterators through each aspect of the call and creates a label for it
+        col = 0
+        for key in used_row.keys():
+            tmp_label = ttk.Label(self, text=str(key) + ": " + str(used_row[key]))
+
+            # Change this to .grid() later
+            tmp_label.pack()
+            col += 1
+
+        label = ttk.Label(self, text=used_row["name"], font=controller.title_font)
+        label.pack(side="top", fill="x", pady=10)
+        button = ttk.Button(self, text="Go to the homepage",
+                            command=lambda: controller.next_frame(Homepage))
+        button.pack()
+
 
 class Schools(ttk.Frame):
     """
@@ -451,6 +519,61 @@ class Schools(ttk.Frame):
                             command=lambda: controller.next_frame(Homepage))
         button.pack()
 
+        # Add all the buttons needed
+        cur = controller.cnx.cursor()
+        cur.callproc("view_all_schools")
+        rows = cur.fetchall()
+        schools = {}
+        for row in rows:
+            schools[row["id"]] = row
+        cur.close()
+
+        for school_id in schools:
+            name = schools[school_id]["name"]
+            address = schools[school_id]["address"]
+            button_text = f"{name}\n" \
+                          f"{address}\n"
+            button = ttk.Button(self, text=button_text,
+                                command=lambda s=school_id: self.select_school(school_id))
+            button.pack()
+
+    def select_school(self, school_id):
+
+        self.controller.set_school_id(school_id)
+        self.controller.next_frame(School)
+
+
+class School(ttk.Frame):
+    """
+    Represents a specific tournament view.
+
+    Presents tournament data, offers tournament deletion/editing, and division selection.
+    """
+
+    def __init__(self, parent, controller):
+        ttk.Frame.__init__(self, parent)
+        self.controller = controller
+
+        cur = self.controller.cnx.cursor()
+        cur.callproc("view_specific_school", (self.controller.school_id,))
+        row = cur.fetchall()
+        cur.close()
+
+        used_row = row[0]
+        # Iterators through each aspect of the call and creates a label for it
+        col = 0
+        for key in used_row.keys():
+            tmp_label = ttk.Label(self, text=str(key) + ": " + str(used_row[key]))
+
+            # Change this to .grid() later
+            tmp_label.pack()
+            col += 1
+
+        label = ttk.Label(self, text=used_row["name"], font=controller.title_font)
+        label.pack(side="top", fill="x", pady=10)
+        button = ttk.Button(self, text="Go to the homepage",
+                            command=lambda: controller.next_frame(Homepage))
+        button.pack()
 
 
 if __name__ == "__main__":
