@@ -33,8 +33,8 @@ INSERT INTO division (id, name, description, max_teams, tournament_id_FK) VALUES
 INSERT INTO division (id, name, description, max_teams, tournament_id_FK) VALUES (6, "Division F", "Cool division", 3, 3);
 
 -- Team Data
-INSERT INTO team (id, name, player1_id_FK, player2_id_FK, division_id_FK) VALUES (1, "The Boys", 1, 2, 1);
-INSERT INTO team (id, name, player1_id_FK, player2_id_FK, division_id_FK) VALUES (2, "Folks", 3, 4, 1);
+INSERT INTO team (id, name, player1_id_FK, player2_id_FK, division_id_FK) VALUES (1, "The Boys", 1, 2, 2);
+INSERT INTO team (id, name, player1_id_FK, player2_id_FK, division_id_FK) VALUES (2, "Folks", 3, 4, 2);
 
 INSERT INTO team (id, name, player1_id_FK, player2_id_FK, division_id_FK) VALUES (3, "Hmmm", 5, 6, 2);
 INSERT INTO team (id, name, player1_id_FK, player2_id_FK, division_id_FK) VALUES (4, "Wonners", 1, 4, 2);
@@ -42,32 +42,11 @@ INSERT INTO team (id, name, player1_id_FK, player2_id_FK, division_id_FK) VALUES
 INSERT INTO team (id, name, player1_id_FK, player2_id_FK, division_id_FK) VALUES (5, "Ahhh", 7, 8, 2);
 INSERT INTO team (id, name, player1_id_FK, player2_id_FK, division_id_FK) VALUES (6, "Losers", 4, 9, 2);
 
--- Squad Data
-INSERT INTO squad (id, name, school_id_FK, team1_id_FK, team2_id_FK, team3_id_FK) VALUES (1, "A Cool Squad", 1, 1, 2, 3);
-INSERT INTO squad (id, name, school_id_FK, team1_id_FK, team2_id_FK, team3_id_FK) VALUES (2, "A Not Cool Squad", 2, 4, 5, 6);
-
 -- Match Data
-INSERT INTO match_data (id, playTo, hardCap, division_id_FK) VALUES (1, 4, 5, 2);
-INSERT INTO match_data (id, playTo, hardCap, division_id_FK) VALUES (2, 3, 4, 2);
-INSERT INTO match_data (id, playTo, hardCap, division_id_FK) VALUES (3, 9, 10, 2);
-
-INSERT INTO match_data (id, playTo, hardCap, division_id_FK) VALUES (4, 2, 4, 2);
-INSERT INTO match_data (id, playTo, hardCap, division_id_FK) VALUES (5, 5, 8, 2);
-INSERT INTO match_data (id, playTo, hardCap, division_id_FK) VALUES (6, 2, 7, 2);
-INSERT INTO match_data (id, playTo, hardCap, division_id_FK) VALUES (7, 8, 5, 2);
-
--- Individual Matches
-INSERT INTO individual_match (bestOf, match_id_FK, winning_team_id_FK) VALUES (7, 1, 2);
-INSERT INTO individual_match (bestOf, match_id_FK, winning_team_id_FK) VALUES (1, 2, 3);
-INSERT INTO individual_match (bestOf, match_id_FK, winning_team_id_FK) VALUES (5, 3, 5);
-INSERT INTO individual_match (bestOf, match_id_FK, winning_team_id_FK) VALUES (3, 4, 1);
-INSERT INTO individual_match (bestOf, match_id_FK, winning_team_id_FK) VALUES (5, 5, 4);
-INSERT INTO individual_match (bestOf, match_id_FK, winning_team_id_FK) VALUES (3, 6, 6);
-
--- Sqaud Matches
-INSERT INTO squad_match (match_id_FK, winning_squad_id_FK, match1_id_FK, match2_id_FK, match3_id_FK, squad1_id_FK, squad2_id_FK)
-	VALUES (7, 1, 1, 2, 3, 1, 2);
-
--- Game Data
-INSERT INTO game_data (id, team1_score, team2_score, team1_id_FK, team2_id_FK, match_id_FK) VALUES (1, 20, 30, 1, 2, 1);
-INSERT INTO game_data (id, team1_score, team2_score, team1_id_FK, team2_id_FK, match_id_FK) VALUES (2, 50, 30, 3, 4, 2);
+INSERT INTO match_data (id, play_to, hard_cap, best_of, team1_id_FK, team2_id_FK, division_id_FK) VALUES (1, 21, 25, 3, 1, 2, 2);
+INSERT INTO match_data (id, play_to, hard_cap, best_of, team1_id_FK, team2_id_FK, division_id_FK) VALUES (2, 21, 25, 5, 2, 3, 2);
+INSERT INTO match_data (id, play_to, hard_cap, best_of, team1_id_FK, team2_id_FK, division_id_FK) VALUES (3, 21, 25, 5, 3, 4, 2);
+INSERT INTO match_data (id, play_to, hard_cap, best_of, team1_id_FK, team2_id_FK, division_id_FK) VALUES (4, 21, 25, 3, 5, 6, 2);
+INSERT INTO match_data (id, play_to, hard_cap, best_of, team1_id_FK, team2_id_FK, division_id_FK) VALUES (5, 21, 25, 3, 1, 4, 2);
+INSERT INTO match_data (id, play_to, hard_cap, best_of, team1_id_FK, team2_id_FK, division_id_FK) VALUES (6, 21, 25, 3, 2, 5, 2);
+INSERT INTO match_data (id, play_to, hard_cap, best_of, team1_id_FK, team2_id_FK, division_id_FK) VALUES (7, 21, 25, 3, 3, 6, 2);
