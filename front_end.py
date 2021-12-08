@@ -59,27 +59,6 @@ class App(tk.Tk):
     def refresh(self):
         self.next_frame(self.frame.__class__)
 
-    def set_cnx(self, cnx):
-        self.cnx = cnx
-
-    def set_to_id(self, to_id):
-        self.to_id = to_id
-
-    def set_d_id(self, d_id):
-        self.d_id = d_id
-
-    def set_p_id(self, p_id):
-        self.p_id = p_id
-
-    def set_s_id(self, s_id):
-        self.s_id = s_id
-
-    def set_te_id(self, te_id):
-        self.te_id = te_id
-
-    def set_m_id(self, m_id):
-        self.m_id = m_id
-
 
 class LoginPage(ttk.Frame):
     """
@@ -120,7 +99,7 @@ class LoginPage(ttk.Frame):
                                   password=self.password.get(),
                                   db=db_name, charset='utf8mb4',
                                   cursorclass=pymysql.cursors.DictCursor)
-            self.controller.set_cnx(cnx)
+            self.controller.cnx = cnx
             self.controller.next_frame(Homepage)
         except pymysql.err.OperationalError as e:
             messagebox.showerror("Error", "Incorrect login info, please try again.")
@@ -174,7 +153,20 @@ class Header(ttk.Frame):
         button.pack(side="right", padx=5)
 
 
+def valid_date(date):
+    try:
+        datetime.datetime.strptime(date, '%Y-%m-%d')
+        return True
+    except ValueError:
+        return False
 
+
+def valid_time(time):
+    try:
+        datetime.datetime.strptime(time, "%H:%M:%S")
+        return True
+    except ValueError:
+        return False
 
 
 class Form(ttk.Frame):
@@ -187,45 +179,60 @@ class Form(ttk.Frame):
 
         cur = controller.cnx.cursor()
         cur.callproc("get_columns_from_table", (table_name, db_name,))
-        column_data = cur.fetchall()
+        self.column_data = cur.fetchall()
+        cur.close()
 
         entries = {}
-        for row in column_data:
+        for row in self.column_data:
             section = ttk.Frame(self)
             if row["COLUMN_KEY"] != "PRI":
                 field = row["COLUMN_NAME"]
-                datatype = row["DATA_TYPE"]
-                is_nullable = row["IS_NULLABLE"]
-                label = ttk.Label(section, width=22, text=f"{field} ({datatype}): ", anchor='w')
-                vcmd = (self.register(self.valid), datatype, is_nullable, "%P")
-                entry = ttk.Entry(section, validatecommand=vcmd, validate='key')
+                data_type = row["DATA_TYPE"]
+                is_nullable = row["IS_NULLABLE"] == 'YES'
+                input_info = data_type
+                if not is_nullable:
+                    input_info += '*'
+                label = ttk.Label(section, width=22, anchor='w',
+                                  text=f"{field} ({input_info}): ")
+                entry = ttk.Entry(section)
                 section.pack(side=tk.TOP, fill=tk.X, padx=5, pady=5)
                 label.pack(side=tk.LEFT)
                 entry.pack(side=tk.RIGHT, expand=tk.YES, fill=tk.X)
                 entries[field] = entry
         self.entries = entries
 
-    def valid(self, data_type, is_nullable, value):
-        print(data_type, is_nullable, value)
-        return (is_nullable and value == '') or \
-               (data_type == 'varchar' and value != '') or \
-               (data_type == 'int' and value.isdigit()) or \
-               (data_type == 'date' and self.valid_date(value)) or \
-               (data_type == 'time' and self.valid_time(value))
+    def valid_entries(self):
+        for row in self.column_data:
 
-    def valid_date(self, date):
-        try:
-            datetime.datetime.strptime(date, '%Y-%m-%d')
-            return True
-        except ValueError:
-            return False
+            field = row["COLUMN_NAME"]
+            if field in self.entries:
 
-    def valid_time(self, time):
-        try:
-            datetime.datetime.strptime(time, "%H:%M:%S")
-            return True
-        except ValueError:
-            return False
+                data_type = row["DATA_TYPE"]
+                is_nullable = row["IS_NULLABLE"] == 'YES'
+                value = self.entries[field].get()
+
+                input_requirement = ''
+                if value == '':
+                    if not is_nullable:
+                        input_requirement = "is not nullable"
+                elif data_type == 'int':
+                    is_int = value.isdigit()
+                    if not is_int:
+                        input_requirement = "requires integer input"
+                elif data_type == 'date':
+                    is_date = valid_date(value)
+                    if not is_date:
+                        input_requirement = "requires date input (YYYY-MM-DD)"
+                elif data_type == 'time':
+                    is_time = valid_time(value)
+                    if not is_time:
+                        input_requirement = "requires time input (HH:MM:SS)"
+
+                if input_requirement != '':
+                    messagebox.showerror("Error", f"{field} {input_requirement}, please edit and try again.")
+                    return False
+
+        return True
 
 
 class CreateForm(ttk.Frame):
@@ -238,30 +245,31 @@ class CreateForm(ttk.Frame):
         self.controller = controller
         self.table_name = table_name
 
-        form = Form(parent=self, controller=controller, table_name=table_name)
-        form.pack()
-        self.entries = form.entries
+        self.form = Form(parent=self, controller=controller, table_name=table_name)
+        self.form.pack()
 
         button = ttk.Button(self, text=f"Create {table_name}",
                             command=lambda: self.create())
         button.pack(pady=5)
 
     def create(self):
-        columns = []
-        values = []
-        for field, entry in self.entries.items():
-            columns.append(field)
-            values.append(f"'{entry.get()}'")
 
-        sql = f"INSERT INTO {self.table_name} ({', '.join(columns)}) VALUES ({', '.join(values)})"
+        if self.form.valid_entries():
+            columns = []
+            values = []
+            for field, entry in self.form.entries.items():
+                columns.append(field)
+                values.append(f"'{entry.get()}'")
 
-        try:
-            cur = self.controller.cnx.cursor()
-            cur.execute(sql)
-            self.controller.cnx.commit()
-            self.controller.refresh()
-        except Exception as e:
-            messagebox.showerror("Error", f"{e.args[0]}: {e.args[1]}")
+            sql = f"INSERT INTO {self.table_name} ({', '.join(columns)}) VALUES ({', '.join(values)})"
+
+            try:
+                cur = self.controller.cnx.cursor()
+                cur.execute(sql)
+                self.controller.cnx.commit()
+                self.controller.refresh()
+            except Exception as e:
+                messagebox.showerror("Error", f"{e.args[0]}: {e.args[1]}")
 
 
 class UpdateForm(ttk.Frame):
@@ -283,11 +291,10 @@ class UpdateForm(ttk.Frame):
         entity = rows[0]
         cur.close()
 
-        form = Form(parent=self, controller=controller, table_name=table_name)
-        form.pack()
-        self.entries = form.entries
+        self.form = Form(parent=self, controller=controller, table_name=table_name)
+        self.form.pack()
 
-        for field, entry in self.entries.items():
+        for field, entry in self.form.entries.items():
             text = ''
             if entity[field]:
                 text = entity[field]
@@ -301,24 +308,26 @@ class UpdateForm(ttk.Frame):
         button2.pack()
 
     def update(self):
-        col_val_pairings = []
-        for field, entry in self.entries.items():
 
-            if entry.get() == '':
-                col_val_pairings.append(f"{field} = NULL")
-            else:
-                col_val_pairings.append(f"{field} = '{entry.get()}'")
+        if self.form.valid_entries():
+            col_val_pairings = []
+            for field, entry in self.form.entries.items():
 
-        sql = f"UPDATE {self.table_name} SET {', '.join(col_val_pairings)} WHERE id={self.entity_id}"
+                if entry.get() == '':
+                    col_val_pairings.append(f"{field} = NULL")
+                else:
+                    col_val_pairings.append(f"{field} = '{entry.get()}'")
 
-        try:
-            cur = self.controller.cnx.cursor()
-            cur.execute(sql)
-            self.controller.cnx.commit()
-            cur.close()
-            self.controller.refresh()
-        except Exception as e:
-            messagebox.showerror("Error", f"{e.args[0]}: {e.args[1]}")
+            sql = f"UPDATE {self.table_name} SET {', '.join(col_val_pairings)} WHERE id={self.entity_id}"
+
+            try:
+                cur = self.controller.cnx.cursor()
+                cur.execute(sql)
+                self.controller.cnx.commit()
+                cur.close()
+                self.controller.refresh()
+            except Exception as e:
+                messagebox.showerror("Error", f"{e.args[0]}: {e.args[1]}")
 
     def delete(self):
 
@@ -382,7 +391,7 @@ class Tournaments(ttk.Frame):
         tournament_grid.pack(fill="both", expand=True, pady=10, padx=10)
 
     def select_tournament(self, to_id):
-        self.controller.set_to_id(to_id)
+        self.controller.to_id = to_id
         self.controller.next_frame(Tournament)
 
 
@@ -431,11 +440,11 @@ class Tournament(ttk.Frame):
         # Setup new division form
         create_division = CreateForm(parent=self, controller=controller, table_name="division")
         create_division.pack(fill="x", pady=10, padx=10)
-        create_division.entries["tournament_id_FK"].insert(0, controller.to_id)
-        create_division.entries["tournament_id_FK"].config(state="disabled")
+        create_division.form.entries["tournament_id_FK"].insert(0, controller.to_id)
+        create_division.form.entries["tournament_id_FK"].config(state="disabled")
 
     def select_division(self, d_id):
-        self.controller.set_d_id(d_id)
+        self.controller.d_id = d_id
         self.controller.next_frame(Division)
 
 
@@ -492,8 +501,8 @@ class Division(ttk.Frame):
 
         create_team = CreateForm(parent=teams_tab, controller=controller, table_name="team")
         create_team.pack(fill="x", pady=10, padx=10)
-        create_team.entries["division_id_FK"].insert(0, controller.d_id)
-        create_team.entries["division_id_FK"].config(state="disabled")
+        create_team.form.entries["division_id_FK"].insert(0, controller.d_id)
+        create_team.form.entries["division_id_FK"].config(state="disabled")
 
         teams_tab.pack(fill='both', expand=True)
 
@@ -524,8 +533,8 @@ class Division(ttk.Frame):
 
         create_team = CreateForm(parent=matches_tab, controller=controller, table_name="match_data")
         create_team.pack(fill="x", pady=10, padx=10)
-        create_team.entries["division_id_FK"].insert(0, controller.d_id)
-        create_team.entries["division_id_FK"].config(state="disabled")
+        create_team.form.entries["division_id_FK"].insert(0, controller.d_id)
+        create_team.form.entries["division_id_FK"].config(state="disabled")
 
         matches_tab.pack(fill='both', expand=True)
 
@@ -533,11 +542,11 @@ class Division(ttk.Frame):
         notebook.add(matches_tab, text='Matches')
 
     def select_team(self, te_id):
-        self.controller.set_te_id(te_id)
+        self.controller.te_id = te_id
         self.controller.next_frame(Team)
 
     def select_match(self, m_id):
-        self.controller.set_m_id(m_id)
+        self.controller.m_id = m_id
         self.controller.next_frame(Match)
 
 
@@ -584,7 +593,7 @@ class Team(ttk.Frame):
         player_grid.pack(fill="both", expand=True, pady=10, padx=10)
 
     def select_player(self, p_id):
-        self.controller.set_p_id(p_id)
+        self.controller.p_id = p_id
         self.controller.next_frame(Player)
 
 
@@ -636,7 +645,7 @@ class Players(ttk.Frame):
         player_grid.pack(fill="both", expand=True, pady=10, padx=10)
 
     def select_player(self, p_id):
-        self.controller.set_p_id(p_id)
+        self.controller.p_id = p_id
         self.controller.next_frame(Player)
 
 
@@ -731,7 +740,7 @@ class Match(ttk.Frame):
             cur.close()
             self.controller.refresh()
         except Exception as e:
-            messagebox.showinfo(f"Invalid update!")
+            messagebox.showerror("Error", f"{e.args[0]}: {e.args[1]}")
 
 
 class Schools(ttk.Frame):
@@ -781,7 +790,7 @@ class Schools(ttk.Frame):
 
     def select_school(self, s_id):
 
-        self.controller.set_s_id(s_id)
+        self.controller.s_id = s_id
         self.controller.next_frame(School)
 
 
@@ -828,7 +837,7 @@ class School(ttk.Frame):
         player_grid.pack(fill="both", expand=True, pady=10, padx=10)
 
     def select_player(self, p_id):
-        self.controller.set_p_id(p_id)
+        self.controller.p_id = p_id
         self.controller.next_frame(Player)
 
 
