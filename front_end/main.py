@@ -15,7 +15,7 @@ class App(tk.Tk):
     """
     The Controller for the application.
 
-    Controls current age and updates database data.
+    Controls current page and holds database connection.
     """
 
     def __init__(self, *args, **kwargs):
@@ -109,7 +109,7 @@ class Homepage(ttk.Frame):
     """
     Represents the application homepage.
 
-    Presents tournament/player access.
+    Presents tournament, player, and school access.
     """
 
     def __init__(self, parent, controller):
@@ -137,7 +137,9 @@ class Homepage(ttk.Frame):
 
 class Header(ttk.Frame):
     """
-    Represents a mainpage header.
+    Represents a page header.
+
+    Titles the page and offers back and homepage buttons.
     """
 
     def __init__(self, parent, controller, title):
@@ -163,7 +165,7 @@ def valid_date(date):
 
 def valid_time(time):
     try:
-        datetime.datetime.strptime(time, "%H:%M:%S")
+        datetime.datetime.strptime(time, '%H:%M:%S')
         return True
     except ValueError:
         return False
@@ -172,6 +174,8 @@ def valid_time(time):
 class Form(ttk.Frame):
     """
     Represents a form.
+
+    Offers user input to all columns associated with a table.
     """
 
     def __init__(self, parent, controller, table_name):
@@ -238,6 +242,8 @@ class Form(ttk.Frame):
 class CreateForm(ttk.Frame):
     """
     Represents a create form.
+
+    On create validates user input and submits input to database.
     """
 
     def __init__(self, parent, controller, table_name):
@@ -275,6 +281,9 @@ class CreateForm(ttk.Frame):
 class UpdateForm(ttk.Frame):
     """
     Represents an update form.
+
+    On update validates user input and submits input to database.
+    On delete submits delete request to database.
     """
 
     def __init__(self, parent, controller, table_name, entity_id):
@@ -452,7 +461,8 @@ class Division(ttk.Frame):
     """
     Represents a specific division view.
 
-    Presents division data, offers division deletion/editing, and presents the division's registered teams.
+    Presents division data and the division's teams and matches.
+    Offers division deletion/editing and division team/match creation.
     """
 
     def __init__(self, parent, controller):
@@ -472,49 +482,46 @@ class Division(ttk.Frame):
         notebook.pack(fill="both", expand=True)
 
         # Teams tab
-        teams_tab = ttk.Frame(notebook)
+        teams_tab = DivisionTeams(parent=notebook, controller=controller)
+        teams_tab.pack(fill='both', expand=True)
+
+        # Matches tab
+        matches_tab = DivisionMatches(parent=notebook, controller=controller)
+        matches_tab.pack(fill='both', expand=True)
+
+        notebook.add(teams_tab, text='Teams')
+        notebook.add(matches_tab, text='Matches')
+
+
+class DivisionMatches(ttk.Frame):
+    """
+    Represents the matches view for a division.
+
+    Presents match data and offers match creation.
+    """
+
+    def __init__(self, parent, controller):
+        ttk.Frame.__init__(self, parent)
+        self.controller = controller
 
         cur = controller.cnx.cursor()
         cur.callproc("view_all_division_teams", (controller.d_id,))
         teams = cur.fetchall()
         cur.close()
 
-        team_grid = ttk.Frame(teams_tab)
-        team_grid.grid_columnconfigure(0, weight=1)
-        team_grid.grid_columnconfigure(1, weight=1)
-        team_grid.grid_columnconfigure(2, weight=1)
-        for y in range(math.ceil(len(teams) / 3)):
-            team_grid.grid_rowconfigure(y, weight=1)
-
         team_id_to_name = {}
 
-        count = 0
         for team in teams:
             team_id = team["id"]
             name = team["name"]
             team_id_to_name[team_id] = name
-            button_text = f"{name}"
-            button = ttk.Button(team_grid, text=button_text, command=lambda te_id=team_id: self.select_team(te_id))
-            button.grid(row=math.trunc(count / 3), column=count % 3, sticky="nsew")
-            count += 1
-        team_grid.pack(fill="both", expand=True, pady=10, padx=10)
-
-        create_team = CreateForm(parent=teams_tab, controller=controller, table_name="team")
-        create_team.pack(fill="x", pady=10, padx=10)
-        create_team.form.entries["division_id_FK"].insert(0, controller.d_id)
-        create_team.form.entries["division_id_FK"].config(state="disabled")
-
-        teams_tab.pack(fill='both', expand=True)
-
-        # Matches tab
-        matches_tab = ttk.Frame(notebook)
 
         cur = controller.cnx.cursor()
         cur.callproc("view_all_division_matches", (controller.d_id,))
         matches = cur.fetchall()
         cur.close()
 
-        match_grid = ttk.Frame(matches_tab)
+        match_grid = ttk.Frame(self)
         match_grid.grid_columnconfigure(0, weight=1)
         match_grid.grid_columnconfigure(1, weight=1)
         match_grid.grid_columnconfigure(2, weight=1)
@@ -531,30 +538,138 @@ class Division(ttk.Frame):
             count += 1
         match_grid.pack(fill="both", expand=True, pady=10, padx=10)
 
-        create_team = CreateForm(parent=matches_tab, controller=controller, table_name="match_data")
+        create_team = CreateForm(parent=self, controller=controller, table_name="match_data")
         create_team.pack(fill="x", pady=10, padx=10)
         create_team.form.entries["division_id_FK"].insert(0, controller.d_id)
         create_team.form.entries["division_id_FK"].config(state="disabled")
-
-        matches_tab.pack(fill='both', expand=True)
-
-        notebook.add(teams_tab, text='Teams')
-        notebook.add(matches_tab, text='Matches')
-
-    def select_team(self, te_id):
-        self.controller.te_id = te_id
-        self.controller.next_frame(Team)
 
     def select_match(self, m_id):
         self.controller.m_id = m_id
         self.controller.next_frame(Match)
 
 
+class Match(ttk.Frame):
+    """
+    Represents the match view.
+
+    Offers game info updating.
+    """
+
+    def __init__(self, parent, controller):
+        ttk.Frame.__init__(self, parent)
+        self.controller = controller
+        header = Header(parent=self, controller=controller, title=f"Match {controller.m_id}")
+        header.pack(fill="x", pady=10, padx=10)
+
+        # Setup update player form
+        update_match = \
+            UpdateForm(parent=self, controller=controller, table_name="match_data", entity_id=controller.m_id)
+        update_match.pack(fill="x", pady=10, padx=10)
+
+        # Request all game information for a match
+        cur = controller.cnx.cursor()
+        cur.callproc("view_all_match_games", (controller.m_id,))
+        games = cur.fetchall()
+        cur.close()
+
+        # Setup Game Grid
+        game_grid = ttk.Frame(self)
+        game_grid.grid_columnconfigure(0, weight=1)
+        game_grid.grid_columnconfigure(1, weight=1)
+        game_grid.grid_columnconfigure(2, weight=1)
+        for y in range(math.ceil(len(games) / 3)):
+            game_grid.grid_rowconfigure(y, weight=1)
+
+        # Add players to grid
+        count = 0
+        for game in games:
+            game_frame = ttk.Frame(game_grid)
+            game_frame['borderwidth'] = 5
+            game_frame['relief'] = 'sunken'
+            header = ttk.Label(game_frame, text=f"Game {count + 1}", font=controller.title_font)
+            header.pack(padx=5, pady=5)
+
+            team1_label = ttk.Label(game_frame, text="Team 1 Score:")
+            team1_label.pack()
+            team1_entry = ttk.Entry(game_frame)
+            team1_entry.pack()
+
+            team2_label = ttk.Label(game_frame, text="Team 2 Score:")
+            team2_label.pack()
+            team2_entry = ttk.Entry(game_frame)
+            team2_entry.pack()
+
+            button = ttk.Button(game_frame, text="Update Score",
+                                command=lambda g_id=game["id"], t1_score=team1_entry.get(), t2_score=team2_entry.get():
+                                self.update_game(g_id, t1_score, t2_score))
+            button.pack(padx=5, pady=5)
+
+            game_frame.grid(row=math.trunc(count / 3), column=count % 3, sticky="nsew")
+            count += 1
+
+        game_grid.pack(fill="both", expand=True, pady=10, padx=10)
+
+    def update_game(self, g_id, t1_score, t2_score):
+        sql = f"UPDATE game_data SET team1_score = {t1_score}, team2_score = {t2_score} WHERE id={g_id}"
+
+        try:
+            cur = self.controller.cnx.cursor()
+            cur.execute(sql)
+            self.controller.cnx.commit()
+            cur.close()
+            self.controller.refresh()
+        except Exception as e:
+            messagebox.showerror("Error", f"{e.args[0]}: {e.args[1]}")
+
+
+class DivisionTeams(ttk.Frame):
+    """
+    Represents the teams view for a division.
+
+    Presents team data and offers team creation.
+    """
+
+    def __init__(self, parent, controller):
+        ttk.Frame.__init__(self, parent)
+        self.controller = controller
+
+        cur = controller.cnx.cursor()
+        cur.callproc("view_all_division_teams", (controller.d_id,))
+        teams = cur.fetchall()
+        cur.close()
+
+        team_grid = ttk.Frame(self)
+        team_grid.grid_columnconfigure(0, weight=1)
+        team_grid.grid_columnconfigure(1, weight=1)
+        team_grid.grid_columnconfigure(2, weight=1)
+        for y in range(math.ceil(len(teams) / 3)):
+            team_grid.grid_rowconfigure(y, weight=1)
+
+        count = 0
+        for team in teams:
+            team_id = team["id"]
+            name = team["name"]
+            button_text = f"{name}"
+            button = ttk.Button(team_grid, text=button_text, command=lambda te_id=team_id: self.select_team(te_id))
+            button.grid(row=math.trunc(count / 3), column=count % 3, sticky="nsew")
+            count += 1
+        team_grid.pack(fill="both", expand=True, pady=10, padx=10)
+
+        create_team = CreateForm(parent=self, controller=controller, table_name="team")
+        create_team.pack(fill="x", pady=10, padx=10)
+        create_team.form.entries["division_id_FK"].insert(0, controller.d_id)
+        create_team.form.entries["division_id_FK"].config(state="disabled")
+
+    def select_team(self, te_id):
+        self.controller.te_id = te_id
+        self.controller.next_frame(Team)
+
+
 class Team(ttk.Frame):
     """
-    Represents a specific division view.
+    Represents a specific team view.
 
-    Presents division data and offers player deletion/editing.
+    Presents team data and offers team deletion/editing.
     """
 
     def __init__(self, parent, controller):
@@ -669,80 +784,6 @@ class Player(ttk.Frame):
         update_player.pack(fill="x", pady=10, padx=10)
 
 
-class Match(ttk.Frame):
-    """
-    Represents the match view.
-
-    Offers game info updating.
-    """
-
-    def __init__(self, parent, controller):
-        ttk.Frame.__init__(self, parent)
-        self.controller = controller
-        header = Header(parent=self, controller=controller, title=f"Match {controller.m_id}")
-        header.pack(fill="x", pady=10, padx=10)
-
-        # Setup update player form
-        update_match = \
-            UpdateForm(parent=self, controller=controller, table_name="match_data", entity_id=controller.m_id)
-        update_match.pack(fill="x", pady=10, padx=10)
-
-        # Request all game information for a match
-        cur = controller.cnx.cursor()
-        cur.callproc("view_all_match_games", (controller.m_id,))
-        games = cur.fetchall()
-        cur.close()
-
-        # Setup Game Grid
-        game_grid = ttk.Frame(self)
-        game_grid.grid_columnconfigure(0, weight=1)
-        game_grid.grid_columnconfigure(1, weight=1)
-        game_grid.grid_columnconfigure(2, weight=1)
-        for y in range(math.ceil(len(games) / 3)):
-            game_grid.grid_rowconfigure(y, weight=1)
-
-        # Add players to grid
-        count = 0
-        for game in games:
-            game_frame = ttk.Frame(game_grid)
-            game_frame['borderwidth'] = 5
-            game_frame['relief'] = 'sunken'
-            header = ttk.Label(game_frame, text=f"Game {count + 1}", font=controller.title_font)
-            header.pack(padx=5, pady=5)
-
-            team1_label = ttk.Label(game_frame, text="Team 1 Score:")
-            team1_label.pack()
-            team1_entry = ttk.Entry(game_frame)
-            team1_entry.pack()
-
-            team2_label = ttk.Label(game_frame, text="Team 2 Score:")
-            team2_label.pack()
-            team2_entry = ttk.Entry(game_frame)
-            team2_entry.pack()
-
-            button = ttk.Button(game_frame, text="Update Score",
-                                command=lambda g_id=game["id"], t1_score=team1_entry.get(), t2_score=team2_entry.get():
-                                self.update_game(g_id, t1_score, t2_score))
-            button.pack(padx=5, pady=5)
-
-            game_frame.grid(row=math.trunc(count / 3), column=count % 3, sticky="nsew")
-            count += 1
-
-        game_grid.pack(fill="both", expand=True, pady=10, padx=10)
-
-    def update_game(self, g_id, t1_score, t2_score):
-        sql = f"UPDATE game_data SET team1_score = {t1_score}, team2_score = {t2_score} WHERE id={g_id}"
-
-        try:
-            cur = self.controller.cnx.cursor()
-            cur.execute(sql)
-            self.controller.cnx.commit()
-            cur.close()
-            self.controller.refresh()
-        except Exception as e:
-            messagebox.showerror("Error", f"{e.args[0]}: {e.args[1]}")
-
-
 class Schools(ttk.Frame):
     """
     Represents the schools view.
@@ -796,9 +837,9 @@ class Schools(ttk.Frame):
 
 class School(ttk.Frame):
     """
-    Represents a specific tournament view.
+    Represents a specific school view.
 
-    Presents tournament data, offers tournament deletion/editing, and division selection.
+    Presents school data and offers school deletion/editing.
     """
 
     def __init__(self, parent, controller):
