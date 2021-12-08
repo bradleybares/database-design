@@ -18,7 +18,7 @@ create table player (
     phone_number VARCHAR(20),
 
     school_id_FK INT,
-    FOREIGN KEY(school_id_FK) REFERENCES School(id)
+    FOREIGN KEY(school_id_FK) REFERENCES school(id)
         ON UPDATE CASCADE ON DELETE RESTRICT
 );
 

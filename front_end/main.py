@@ -8,6 +8,7 @@ from tkinter import ttk
 from tkinter import font as tkfont
 from tkinter import messagebox
 
+host = 'localhost'
 db_name = 'tm'
 
 
@@ -95,13 +96,13 @@ class LoginPage(ttk.Frame):
 
     def attempt_login(self):
         try:
-            cnx = pymysql.connect(host='localhost', user=self.username.get(),
+            cnx = pymysql.connect(host=host, user=self.username.get(),
                                   password=self.password.get(),
                                   db=db_name, charset='utf8mb4',
                                   cursorclass=pymysql.cursors.DictCursor)
             self.controller.cnx = cnx
             self.controller.next_frame(Homepage)
-        except pymysql.err.OperationalError as e:
+        except pymysql.err.OperationalError:
             messagebox.showerror("Error", "Incorrect login info, please try again.")
 
 
