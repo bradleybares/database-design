@@ -11,26 +11,28 @@ Tournament Manager is a native Python application leveraging Python's Tk GUI too
 users to create/update/delete tournaments, tournament divisions, division teams, division matches, and game scores
 within a match.
 
+After logging into the database through the app you are presented with the homepage. The homepage has links to the 3 main sections of the app: Tournaments, Players, and Schools. Their contents are shown below.
+
+![Tournament Manager](./tournament_manager.gif)
+
 ## Requirements
 
-### Python >= 3.6
+### Python >= 3.11
 
-Most systems will have Python installed, to verify your version run `python3 --version` in your command line. If your
-version is lower than 3.6 or the command does not return a version number, visit the Python [downloads page](https://www.python.org/downloads/) and download
-the latest version.
+Most systems will have Python installed, to verify your version run `python3 --version` in your command line. If your version is lower than 3.11 or the command does not return a version number, visit the Python [downloads page](https://www.python.org/downloads/) and download the latest version.
 
-### Tkinter
+Alternatively you can use a python environment manager such as [pyenv](https://github.com/pyenv/pyenv) to install and manage your python versions. This is the recommended method as it allows you to easily switch between python versions depending on the project. If using pyenv follow the [tkinter specific instructions](https://github.com/python-poetry/poetry/issues/4322) to ensure tkinter is installed.
 
-Tkinter comes pre-installed with the Python installer binaries, but if you don't have Tkinter installed you can run
-`pip3 install tk` in your command line.
+### Poetry
 
-### PyMySQL
+Poetry is a python package manager and virtual environment manager. It is used to install the required dependencies and manage the project's virtual environment. To install poetry visit the [Poetry installation page](https://python-poetry.org/docs/#installation) and follow the instructions for your operating system.
 
-PyMySQL does not come pre-installed and can be installed by running `pip3 install PyMySQL` in your command line.
 
 ## Installation
 
 Clone the repository using your preferred cloning method or download the ZIP.
+
+Navigate to the `front_end` directory and run `poetry install` in your command line. This will install all the required dependencies and create a virtual environment for the project. To activate the virtual environment run `poetry shell` in your command line.
 
 ## Setup
 

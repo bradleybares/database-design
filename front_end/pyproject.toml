@@ -1,0 +1,18 @@
+[tool.poetry]
+name = "front-end"
+version = "0.1.0"
+description = ""
+authors = ["Bradley Bares <bradleygbares@gmail.com>"]
+readme = "README.md"
+packages = [{include = "front_end"}]
+
+[tool.poetry.dependencies]
+python = "^3.11"
+tk = "^0.1.0"
+pymysql = "^1.1.0"
+cryptography = "^41.0.2"
+
+
+[build-system]
+requires = ["poetry-core"]
+build-backend = "poetry.core.masonry.api"
